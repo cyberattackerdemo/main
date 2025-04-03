@@ -1,4 +1,4 @@
-# PowerShellスクリプト：FakeRansom_JP_GitHubWall.ps1
+﻿# PowerShellスクリプト：FakeRansom_JP_GitHubWall.ps1
 
 # 設定
 $token = "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" # PATを貼る
