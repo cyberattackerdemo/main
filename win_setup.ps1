@@ -132,6 +132,7 @@ if (Test-Path $chromeExePath) {
     $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
     Set-ItemProperty -Path $regPath -Name ProxyEnable -Value 1
     Set-ItemProperty -Path $regPath -Name ProxyServer -Value "10.0.1.254:3128"
+    netsh winhttp set proxy 10.0.1.254:3128
 
     Log "スクリプト実行完了"
 
