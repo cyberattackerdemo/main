@@ -1,19 +1,39 @@
+$logFile = "C:\win_config_log.txt"
+function Log($message) {
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -Path $logFile -Value "$timestamp [INFO] $message"
+}
+
+function LogError($message) {
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -Path $logFile -Value "$timestamp [ERROR] $message"
+}
+
 try {
+    Log "スクリプト実行開始"
+
     # Defenderのリアルタイム保護を無効化
+    Log "Defenderのリアルタイム保護を無効化"
     Set-MpPreference -DisableRealtimeMonitoring $true
 
     # ファイアウォール無効化
+    Log "ファイアウォールを無効化"
     netsh advfirewall set allprofiles state off
 
     # ユーザーアカウント制御 (UAC) を無効化
+    Log "UACを無効化"
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "EnableLUA" -Value 0
 
-    # Office Deployment Tool のダウンロードと展開
+    # Office Deployment Tool ダウンロードと展開
     $odtPath = "C:\ODT"
-    Invoke-WebRequest -Uri "https://download.microsoft.com/download/0/1/B/01BE1D1F-AB7B-4A02-A4B8-3A64E4F64F8C/Officedeploymenttool.exe" -OutFile "C:\ODTSetup.exe"
-    Start-Process -FilePath "C:\ODTSetup.exe" -ArgumentList "/quiet /extract:$odtPath" -Wait
+    $odtExe = "C:\ODTSetup.exe"
+    Log "Office Deployment Toolをダウンロード"
+    Invoke-WebRequest -Uri "https://download.microsoft.com/download/0/1/B/01BE1D1F-AB7B-4A02-A4B8-3A64E4F64F8C/Officedeploymenttool.exe" -OutFile $odtExe
+    Log "ODTSetup.exeを展開"
+    Start-Process -FilePath $odtExe -ArgumentList "/quiet /extract:$odtPath" -Wait
 
     # Wordのみの構成ファイル作成
+    Log "Office構成ファイル作成"
     $configXml = @"
 <Configuration>
   <Add OfficeClientEdition="64" Channel="Current">
@@ -34,52 +54,83 @@ try {
     Set-Content -Path "$odtPath\config.xml" -Value $configXml
 
     # タイムゾーンを日本時間に設定
+    Log "タイムゾーンをTokyoに設定"
     Set-TimeZone -Id "Tokyo Standard Time"
 
-    # NTP同期
-    w32tm /config /manualpeerlist:"ntp.nict.jp" /syncfromflags:manual /update
-    w32tm /resync
+    # NTP設定
+    Log "NTP設定（ntp.nict.jp）"
+    w32tm /config /manualpeerlist:"ntp.nict.jp" /syncfromflags:manual /update | Out-Null
+    w32tm /resync | Out-Null
 
-    # Wordインストール開始
+    # Wordインストール
+    Log "Wordインストール開始"
     Start-Process -FilePath "$odtPath\setup.exe" -ArgumentList "/configure $odtPath\config.xml" -Wait
 
-    # Wordマクロ設定
+    # Wordマクロ警告設定
+    Log "Wordマクロ警告レジストリ設定"
     New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Office\16.0\Word' -Force | Out-Null
     New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Office\16.0\Word\Security' -Force | Out-Null
     New-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Office\16.0\Word\Security' -Name 'VBAWarnings' -PropertyType DWord -Value 1 -Force
 
     # Chromeインストール
+    Log "Chromeをダウンロード＆インストール"
     Invoke-WebRequest -Uri 'https://dl.google.com/chrome/install/latest/chrome_installer.exe' -OutFile 'C:\chrome_installer.exe'
     Start-Process -FilePath 'C:\chrome_installer.exe' -ArgumentList '/silent /install /log C:\chrome_install_log.txt' -Wait
     Remove-Item 'C:\chrome_installer.exe'
 
-    # Chrome既定ブラウザに
+    # 既定ブラウザに設定（サイレントにはできないこともある）
     $chromePath = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
     if (Test-Path $chromePath) {
+        Log "Chromeを既定ブラウザに設定"
         Start-Process $chromePath -ArgumentList '--make-default-browser' -Wait
     }
+    
+# Chromeパス（64bit通常パス）
+$chromeExePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
 
-    # ブックマークの作成
+# デスクトップにショートカット作成
+$desktopPath = [Environment]::GetFolderPath("Desktop")
+$shortcutPath = Join-Path $desktopPath "Google Chrome.lnk"
+
+if (Test-Path $chromeExePath) {
+    Log "デスクトップにChromeショートカットを作成"
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $chromeExePath
+    $shortcut.IconLocation = $chromeExePath
+    $shortcut.Save()
+
+    # タスクバーにピン留め（Win10以降は非公開API使用のため以下で代替）
+    Log "Chromeをタスクバーにピン留め（スクリプト対応）"
+    $taskbarShortcutPath = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk"
+    Copy-Item -Path $shortcutPath -Destination $taskbarShortcutPath -Force
+} else {
+    LogError "Chrome実行ファイルが見つかりませんでした: $chromeExePath"
+}
+
+    # ブックマーク作成
+    Log "ブックマークファイル作成"
     $bookmarkPath = "$env:PUBLIC\Bookmarks"
     New-Item -ItemType Directory -Force -Path $bookmarkPath | Out-Null
     Set-Content -Path "$bookmarkPath\bookmarks.txt" -Value "https://gmail.com`r`nhttps://dp-handson-jp4.cybereason.net"
 
-    # 成功ログ
-    Add-Content -Path 'C:\win_config_log.txt' -Value 'Script executed successfully'
-}
-catch {
-    Add-Content -Path 'C:\win_config_log.txt' -Value ('Error: ' + $_.Exception.Message)
-}
+    # 言語パックインストール
+    Log "日本語言語パックとIMEをインストール"
+    Add-WindowsCapability -Online -Name Language.Basic~~~ja-JP~0.0.1.0
+    Add-WindowsCapability -Online -Name Language.Handwriting~~~ja-JP~0.0.1.0
+    Add-WindowsCapability -Online -Name Language.Speech~~~ja-JP~0.0.1.0
+    Add-WindowsCapability -Online -Name Language.TextToSpeech~~~ja-JP~0.0.1.0
 
-# 日本語IMEと言語パックのインストール
-Add-WindowsCapability -Online -Name Language.Basic~~~ja-JP~0.0.1.0
-Add-WindowsCapability -Online -Name Language.Handwriting~~~ja-JP~0.0.1.0
-Add-WindowsCapability -Online -Name Language.Speech~~~ja-JP~0.0.1.0
-Add-WindowsCapability -Online -Name Language.TextToSpeech~~~ja-JP~0.0.1.0
+    # 言語設定
+    Log "言語設定を日本語に"
+    Set-WinUILanguageOverride -Language ja-JP
+    Set-WinUserLanguageList ja-JP -Force
+    Set-WinSystemLocale ja-JP
+    Set-Culture ja-JP
+    Set-WinHomeLocation -GeoId 122
 
-# 言語設定を日本語に
-Set-WinUILanguageOverride -Language ja-JP
-Set-WinUserLanguageList ja-JP -Force
-Set-WinSystemLocale ja-JP
-Set-Culture ja-JP
-Set-WinHomeLocation -GeoId 122
+    Log "スクリプト実行完了"
+
+} catch {
+    LogError "エラー発生: $($_.Exception.Message)"
+}
