@@ -106,6 +106,8 @@ if (Test-Path $chromeExePath) {
     Copy-Item -Path $shortcutPath -Destination $taskbarShortcutPath -Force
 } else {
     LogError "Chrome実行ファイルが見つかりませんでした: $chromeExePath"
+} catch {
+    LogError "エラー発生: $($_.Exception.Message)"
 }
 
     # ブックマーク作成
@@ -135,7 +137,3 @@ if (Test-Path $chromeExePath) {
     netsh winhttp set proxy 10.0.1.254:3128
 
     Log "スクリプト実行完了"
-
-} catch {
-    LogError "エラー発生: $($_.Exception.Message)"
-}
