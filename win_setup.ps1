@@ -9,6 +9,8 @@ function LogError($message) {
     Add-Content -Path $logFile -Value "$timestamp [ERROR] $message"
 }
 
+Start-Transcript -Path "C:\win_setup_transcript.txt" -Append
+
 try {
     Log "スクリプト実行開始"
 
