@@ -53,6 +53,18 @@ try {
 "@
     Set-Content -Path "$odtPath\config.xml" -Value $configXml
 
+#Wordをデスクトップに追加
+$wordPath = "C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE"
+$desktop = [Environment]::GetFolderPath("Desktop")
+$shortcutPath = Join-Path $desktop "Word.lnk"
+if (Test-Path $wordPath) {
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $wordPath
+    $shortcut.IconLocation = $wordPath
+    $shortcut.Save()
+}
+
     # タイムゾーンを日本時間に設定
     Log "タイムゾーンをTokyoに設定"
     Set-TimeZone -Id "Tokyo Standard Time"
