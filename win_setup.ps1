@@ -1,4 +1,5 @@
 $logFile = "C:\win_config_log.txt"
+
 function Log($message) {
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Add-Content -Path $logFile -Value "$timestamp [INFO] $message"
@@ -22,7 +23,7 @@ try {
     Log "ファイアウォールを無効化"
     netsh advfirewall set allprofiles state off
 
-    # ユーザーアカウント制御 (UAC) を無効化
+    # UAC無効化
     Log "UACを無効化"
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "EnableLUA" -Value 0
 
@@ -34,7 +35,7 @@ try {
     Log "ODTSetup.exeを展開"
     Start-Process -FilePath $odtExe -ArgumentList "/quiet /extract:$odtPath" -Wait
 
-    # Wordのみの構成ファイル作成
+    # Word用構成ファイル作成
     Log "Office構成ファイル作成"
     $configXml = @"
 <Configuration>
@@ -55,17 +56,18 @@ try {
 "@
     Set-Content -Path "$odtPath\config.xml" -Value $configXml
 
-#Wordをデスクトップに追加
-$wordPath = "C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE"
-$desktop = [Environment]::GetFolderPath("Desktop")
-$shortcutPath = Join-Path $desktop "Word.lnk"
-if (Test-Path $wordPath) {
-    $shell = New-Object -ComObject WScript.Shell
-    $shortcut = $shell.CreateShortcut($shortcutPath)
-    $shortcut.TargetPath = $wordPath
-    $shortcut.IconLocation = $wordPath
-    $shortcut.Save()
-}
+    # Wordをデスクトップに追加
+    $wordPath = "C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE"
+    if (Test-Path $wordPath) {
+        Log "デスクトップにWordショートカット作成"
+        $desktop = [Environment]::GetFolderPath("Desktop")
+        $shortcutPath = Join-Path $desktop "Word.lnk"
+        $shell = New-Object -ComObject WScript.Shell
+        $shortcut = $shell.CreateShortcut($shortcutPath)
+        $shortcut.TargetPath = $wordPath
+        $shortcut.IconLocation = $wordPath
+        $shortcut.Save()
+    }
 
     # タイムゾーンを日本時間に設定
     Log "タイムゾーンをTokyoに設定"
@@ -80,7 +82,7 @@ if (Test-Path $wordPath) {
     Log "Wordインストール開始"
     Start-Process -FilePath "$odtPath\setup.exe" -ArgumentList "/configure $odtPath\config.xml" -Wait
 
-    # Wordマクロ警告設定
+    # マクロ警告設定
     Log "Wordマクロ警告レジストリ設定"
     New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Office\16.0\Word' -Force | Out-Null
     New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Office\16.0\Word\Security' -Force | Out-Null
@@ -92,35 +94,31 @@ if (Test-Path $wordPath) {
     Start-Process -FilePath 'C:\chrome_installer.exe' -ArgumentList '/silent /install /log C:\chrome_install_log.txt' -Wait
     Remove-Item 'C:\chrome_installer.exe'
 
-    # 既定ブラウザに設定（サイレントにはできないこともある）
+    # 既定ブラウザに設定
     $chromePath = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
     if (Test-Path $chromePath) {
         Log "Chromeを既定ブラウザに設定"
         Start-Process $chromePath -ArgumentList '--make-default-browser' -Wait
     }
-    
-# Chromeパス（64bit通常パス）
-$chromeExePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
 
-# デスクトップにショートカット作成
-$desktopPath = [Environment]::GetFolderPath("Desktop")
-$shortcutPath = Join-Path $desktopPath "Google Chrome.lnk"
+    # Chromeショートカット作成（デスクトップとタスクバー）
+    $chromeExePath = $chromePath
+    $desktopPath = [Environment]::GetFolderPath("Desktop")
+    $shortcutPath = Join-Path $desktopPath "Google Chrome.lnk"
 
-if (Test-Path $chromeExePath) {
-    Log "デスクトップにChromeショートカットを作成"
-    $shell = New-Object -ComObject WScript.Shell
-    $shortcut = $shell.CreateShortcut($shortcutPath)
-    $shortcut.TargetPath = $chromeExePath
-    $shortcut.IconLocation = $chromeExePath
-    $shortcut.Save()
+    if (Test-Path $chromeExePath) {
+        Log "Chromeショートカット作成"
+        $shell = New-Object -ComObject WScript.Shell
+        $shortcut = $shell.CreateShortcut($shortcutPath)
+        $shortcut.TargetPath = $chromeExePath
+        $shortcut.IconLocation = $chromeExePath
+        $shortcut.Save()
 
-    # タスクバーにピン留め（Win10以降は非公開API使用のため以下で代替）
-    Log "Chromeをタスクバーにピン留め（スクリプト対応）"
-    $taskbarShortcutPath = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk"
-    Copy-Item -Path $shortcutPath -Destination $taskbarShortcutPath -Force
-} else {
-    LogError "Chrome実行ファイルが見つかりませんでした: $chromeExePath"
-}
+        # タスクバーにピン留め（非公式APIの代替）
+        Log "Chromeをタスクバーにピン留め"
+        $taskbarShortcutPath = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\Google Chrome.lnk"
+        Copy-Item -Path $shortcutPath -Destination $taskbarShortcutPath -Force
+    }
 
     # ブックマーク作成
     Log "ブックマークファイル作成"
@@ -128,7 +126,7 @@ if (Test-Path $chromeExePath) {
     New-Item -ItemType Directory -Force -Path $bookmarkPath | Out-Null
     Set-Content -Path "$bookmarkPath\bookmarks.txt" -Value "https://gmail.com`r`nhttps://dp-handson-jp4.cybereason.net"
 
-    # 言語パックインストール
+    # 日本語の言語パックとIMEをインストール
     Log "日本語言語パックとIMEをインストール"
     Add-WindowsCapability -Online -Name Language.Basic~~~ja-JP~0.0.1.0
     Add-WindowsCapability -Online -Name Language.Handwriting~~~ja-JP~0.0.1.0
@@ -136,13 +134,15 @@ if (Test-Path $chromeExePath) {
     Add-WindowsCapability -Online -Name Language.TextToSpeech~~~ja-JP~0.0.1.0
 
     # 言語設定
-    Log "言語設定を日本語に"
+    Log "言語設定を日本語に変更"
     Set-WinUILanguageOverride -Language ja-JP
     Set-WinUserLanguageList ja-JP -Force
     Set-WinSystemLocale ja-JP
     Set-Culture ja-JP
     Set-WinHomeLocation -GeoId 122
 
+    # プロキシ設定（ユーザー＋WinHTTP）
+    Log "プロキシ設定"
     $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
     Set-ItemProperty -Path $regPath -Name ProxyEnable -Value 1
     Set-ItemProperty -Path $regPath -Name ProxyServer -Value "10.0.1.254:3128"
@@ -152,4 +152,6 @@ if (Test-Path $chromeExePath) {
 
 } catch {
     LogError "エラー発生: $($_.Exception.Message)"
+} finally {
+    Stop-Transcript
 }
