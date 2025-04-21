@@ -1,4 +1,4 @@
-$logFile = "C:\win_config_log.txt"
+﻿$logFile = "C:\win_config_log.txt"
 
 function Log($message) {
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
