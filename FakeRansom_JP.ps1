@@ -1,4 +1,4 @@
-# FakeRansom_JP_GitHubWall.ps1 (修正版・最終)
+﻿# FakeRansom_JP_GitHubWall.ps1 (修正版・最終)
 
 # 設定
 $url = "https://raw.githubusercontent.com/cyberattackerdemo/public/main/yourpcishacked.jpg"
