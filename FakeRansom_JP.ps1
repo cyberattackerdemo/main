@@ -1,7 +1,7 @@
 ﻿# FakeRansom_JP_GitHubWall.ps1 (修正版・最終)
 
 # 設定
-$url = "https://raw.githubusercontent.com/cyberattackerdemo/public/main/yourpcishacked.jpg"
+$url = "https://raw.githubusercontent.com/cyberattackerdemo/main/main/yourpcishacked.jpg"
 $imgPath = "$env:PUBLIC\yourpcishacked.jpg"
 $desktop = [Environment]::GetFolderPath("Desktop")
 
@@ -48,7 +48,7 @@ try {
 try {
     # ランサムノート作成（UTF-8 BOMで文字化け防止）
     $notePath = Join-Path $desktop "README_復元したい人用.txt"
-    $warning | Out-File -FilePath $notePath -Encoding utf8BOM -Force
+    $warning | Out-File -FilePath $notePath -Encoding utf8 -Force
 } catch {
     Write-Host "ランサムノート生成でエラー: $($_.Exception.Message)"
 }
