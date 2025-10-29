@@ -1,4 +1,4 @@
-# ======== RestoreRansomEffects.ps1（すべて .docx に復元） ========
+﻿# ======== RestoreRansomEffects.ps1（すべて .docx に復元） ========
 [CmdletBinding()]
 param(
   [string]$TargetFolder = (Join-Path $env:USERPROFILE 'Desktop'),  # 既定はデスクトップ
